@@ -1,0 +1,13 @@
+{
+  "name": "beautyandfitness",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Beauty & fitness blog — Eleventy + Decap CMS on Cloudflare Pages",
+  "scripts": {
+    "build": "eleventy",
+    "dev": "eleventy --serve"
+  },
+  "devDependencies": {
+    "@11ty/eleventy": "^3.0.0"
+  }
+}
