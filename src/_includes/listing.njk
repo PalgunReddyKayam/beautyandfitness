@@ -1,0 +1,21 @@
+---
+layout: base.njk
+---
+<main>
+  <div class="wrap page-head">
+    <h1>{{ title }}</h1>
+    {% if description %}<p>{{ description }}</p>{% endif %}
+  </div>
+  <section class="section" style="padding-top:20px">
+    <div class="wrap">
+      {% set posts = collections[collection] %}
+      {% if posts.length %}
+      <div class="grid">
+        {% for post in posts %}{% include "card.njk" %}{% endfor %}
+      </div>
+      {% else %}
+      <div class="empty">No articles here yet. Open the editor and publish your first one.</div>
+      {% endif %}
+    </div>
+  </section>
+</main>

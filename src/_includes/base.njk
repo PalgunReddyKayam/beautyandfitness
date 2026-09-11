@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% if title %}{{ title }} — {% endif %}{{ site.name }}</title>
+<meta name="description" content="{{ summary or description or site.description }}">
+<meta property="og:title" content="{{ title or site.name }}">
+<meta property="og:description" content="{{ summary or description or site.description }}">
+<meta property="og:type" content="{% if layout == 'post.njk' %}article{% else %}website{% endif %}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,300..700,50..100&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="icon" type="image/svg+xml" href="/assets/logo-mark.svg">
+<link rel="stylesheet" href="/assets/style.css">
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap">
+    <a class="brand" href="/"><img class="mark" src="/assets/logo-mark.svg" alt="" width="34" height="34">{{ site.name }}</a>
+    <ul>
+      <li><a href="/articles/" {% if page.url == '/articles/' %}class="active"{% endif %}>Articles</a></li>
+      <li><a href="/beauty/" {% if page.url == '/beauty/' %}class="active"{% endif %}>Beauty</a></li>
+      <li><a href="/fitness/" {% if page.url == '/fitness/' %}class="active"{% endif %}>Fitness</a></li>
+      <li><a href="/about/" {% if page.url == '/about/' %}class="active"{% endif %}>How we write</a></li>
+    </ul>
+    <a class="btn btn-ink" href="/#signup">Subscribe<span> to the weekly letter</span></a>
+  </div>
+</header>
+
+{{ content | safe }}
+
+<footer>
+  <div class="wrap">
+    <span>© <span id="year"></span> {{ site.name }}. Information here is general and isn't a substitute for advice from your doctor or a registered dietitian.</span>
+    <nav>
+      <a href="/articles/">Articles</a>
+      <a href="/about/">About</a>
+      <a href="/#signup">Newsletter</a>
+      <a href="/admin/">Editor</a>
+    </nav>
+  </div>
+</footer>
+
+<script src="/assets/site.js"></script>
+</body>
+</html>

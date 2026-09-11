@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FAC4CE"/>
+      <stop offset=".6" stop-color="#D66F87"/>
+      <stop offset="1" stop-color="#8E3A55"/>
+    </linearGradient>
+    <linearGradient id="bar" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#BFDCD0"/>
+      <stop offset="1" stop-color="#2E6E60"/>
+    </linearGradient>
+    <radialGradient id="shine" cx=".28" cy=".22" r=".65">
+      <stop offset="0" stop-color="#fff" stop-opacity=".6"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <path d="M60 5c31 0 55 21 55 54 0 34-23 56-55 56S5 93 5 59C5 26 29 5 60 5z" fill="url(#bg)"/>
+  <path d="M60 5c31 0 55 21 55 54 0 34-23 56-55 56S5 93 5 59C5 26 29 5 60 5z" fill="url(#shine)"/>
+  <!-- two petals leaning outward = dumbbell plates -->
+  <g fill="#FBF7FC">
+    <path transform="rotate(-18 44 60)" d="M31 60c0-14 8-24 13-30 5 6 13 16 13 30s-8 24-13 30c-5-6-13-16-13-30z"/>
+    <path transform="rotate(18 76 60)" d="M63 60c0-14 8-24 13-30 5 6 13 16 13 30s-8 24-13 30c-5-6-13-16-13-30z"/>
+  </g>
+  <!-- bar in fern, overlapping the petals -->
+  <rect x="14" y="56" width="92" height="8" rx="4" fill="url(#bar)"/>
+  <circle cx="60" cy="60" r="5" fill="#D8B46B"/>
+  <circle cx="60" cy="60" r="2" fill="#FBF7FC"/>
+</svg>

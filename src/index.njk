@@ -1,0 +1,111 @@
+---
+layout: base.njk
+---
+<section class="hero">
+  <div class="wrap">
+    <div>
+      <h1>Look after the body you <em>actually</em> live in.</h1>
+      <p class="lead">{{ site.description }}</p>
+      <div class="hero-actions">
+        <a class="btn btn-ink" href="/articles/">Read the latest</a>
+        <a class="btn btn-glass" href="/about/">How we choose what to publish</a>
+      </div>
+      <div class="hero-note">
+        <div><strong>2 posts</strong>every week</div>
+        <div><strong>0</strong>sponsored products</div>
+        <div><strong>5 min</strong>average read</div>
+      </div>
+    </div>
+
+    <div class="stage" id="stage">
+      <div class="scene" id="scene">
+        <div class="ring"><span></span></div>
+        <div class="orb orb-a"></div>
+        <div class="orb orb-b"></div>
+
+        {% for post in collections.posts | limit(3) %}
+        {% set t = "rose" if post.data.pillar == "beauty" else ("gold" if post.data.category == "Nutrition" else "fern") %}
+        <a class="slab slab-{{ loop.index }}" href="{{ post.url }}">
+          <span class="tag tag-{{ t }}">{{ post.data.category }}</span>
+          <h3>{{ post.data.title }}</h3>
+          <p>{{ post.data.summary }}</p>
+        </a>
+        {% endfor %}
+
+        <span class="chip chip-1">Evidence-based</span>
+        <span class="chip chip-2">New every week</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="latest">
+  <div class="wrap">
+    <div class="section-head">
+      <h2>Latest articles</h2>
+      <a class="btn btn-glass" href="/articles/">All articles</a>
+    </div>
+    <div class="grid" id="grid">
+      {% for post in collections.posts | limit(6) %}{% include "card.njk" %}{% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="section" style="padding-top:20px">
+  <div class="wrap pillars">
+    <a class="pillar pillar-beauty tilt" href="/beauty/">
+      <div class="float"></div>
+      <h2>Beauty</h2>
+      <p>Skin and hair respond to a small number of things done consistently. We cover those first.</p>
+      <ul>
+        <li>Skincare routines that scale from three steps to seven</li>
+        <li>Ingredients: what the research says, in plain words</li>
+        <li>Hair health, washing and heat</li>
+        <li>Acne, pigmentation and sensitivity without the panic</li>
+      </ul>
+    </a>
+    <a class="pillar pillar-fitness tilt" href="/fitness/">
+      <div class="float"></div>
+      <h2>Fitness</h2>
+      <p>Strength, mobility and enough cardio to keep your heart happy — programmed for real schedules.</p>
+      <ul>
+        <li>Beginner and intermediate strength programmes</li>
+        <li>Mobility routines for desk-bound bodies</li>
+        <li>Nutrition for training, without counting everything</li>
+        <li>Recovery, sleep and managing niggles</li>
+      </ul>
+    </a>
+  </div>
+</section>
+
+<section class="section" id="method">
+  <div class="wrap method">
+    <div>
+      <h2>How we decide what to publish</h2>
+      <p>Beauty and fitness are full of confident advice and thin evidence. Every article here starts with the question "what does the best available research actually show?" — and says so plainly when the answer is "not much yet".</p>
+    </div>
+    <div class="rules">
+      <div class="rule"><span class="dot"></span><div><strong>Sources over opinions</strong><span>Claims link to reviews and trials, not to influencers or brand pages.</span></div></div>
+      <div class="rule"><span class="dot"></span><div><strong>No sponsored recommendations</strong><span>If we name a product, nobody paid us to. We'd rather name an ingredient.</span></div></div>
+      <div class="rule"><span class="dot"></span><div><strong>Written to be used</strong><span>Every post ends with what to do this week, not a list of things to worry about.</span></div></div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="signup">
+  <div class="wrap">
+    <div class="signup">
+      <div>
+        <h2>One letter a week. Two articles. Nothing else.</h2>
+        <p>Sent every Sunday morning. Unsubscribe in one click whenever you like.</p>
+      </div>
+      <div>
+        <form id="form">
+          <input type="email" required placeholder="you@example.com" aria-label="Email address">
+          <button class="btn btn-rose" type="submit">Subscribe</button>
+        </form>
+        <p class="ok" id="ok">Subscribed. Your first letter arrives Sunday.</p>
+      </div>
+    </div>
+  </div>
+</section>

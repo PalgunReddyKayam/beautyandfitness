@@ -1,0 +1,34 @@
+---
+layout: base.njk
+---
+{% set colors = {"skincare":"rose","hair":"plum","strength":"fern","recovery":"fern","mobility":"fern","nutrition":"gold","mindset":"plum"} %}
+{% set c = colors[category | lower] or ("rose" if pillar == "beauty" else "fern") %}
+{% set t = "rose" if pillar == "beauty" else ("gold" if category == "Nutrition" else "fern") %}
+<main class="article">
+  <div class="wrap">
+    <header class="article-head">
+      <div class="meta">
+        <a class="tag tag-{{ t }}" href="/{{ pillar }}/">{{ category }}</a>
+        <time datetime="{{ date | isoDate }}">{{ date | date }}</time>
+        <span>{{ content | readTime }}</span>
+      </div>
+      <h1>{{ title }}</h1>
+      {% if summary %}<p class="summary">{{ summary }}</p>{% endif %}
+    </header>
+
+    <div class="article-cover cover-{{ c }}">
+      {% if cover %}<img src="{{ cover }}" alt="{{ coverAlt or '' }}">{% else %}<div class="glyph"></div>{% endif %}
+    </div>
+
+    <div class="prose">
+      {{ content | safe }}
+    </div>
+
+    <div class="disclaimer">This article is general information, not personal medical advice. If you have a condition, are pregnant, or take medication, check with your doctor or a registered dietitian before changing your routine.</div>
+
+    <div class="article-foot">
+      <span>Published {{ date | date }}{% if author %} by {{ author }}{% endif %}</span>
+      <a href="/{{ pillar }}/">More {{ pillar }} articles</a>
+    </div>
+  </div>
+</main>

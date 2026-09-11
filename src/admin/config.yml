@@ -1,0 +1,84 @@
+# Decap CMS configuration
+# Replace PalgunReddyKayam/beautyandfitness with your repository (e.g. jane/aura-form)
+backend:
+  name: github
+  repo: PalgunReddyKayam/beautyandfitness
+  branch: main
+  base_url: https://beautyandfitness.in   # your live site, no trailing slash
+  auth_endpoint: api/auth
+  commit_messages:
+    create: "Add article: {{slug}}"
+    update: "Update article: {{slug}}"
+    delete: "Delete article: {{slug}}"
+    uploadMedia: "Upload {{path}}"
+    deleteMedia: "Delete {{path}}"
+
+# Set to false once you're comfortable; true lets you Save drafts, Review, then Publish
+publish_mode: editorial_workflow
+
+media_folder: "src/uploads"
+public_folder: "/uploads"
+
+site_url: https://beautyandfitness.in
+display_url: https://beautyandfitness.in
+logo_url: /assets/logo.svg
+
+collections:
+  - name: "posts"
+    label: "Articles"
+    label_singular: "Article"
+    folder: "src/posts"
+    create: true
+    slug: "{{year}}-{{month}}-{{day}}-{{slug}}"
+    preview_path: "articles/{{slug}}/"
+    sortable_fields: ["date", "title", "pillar"]
+    view_filters:
+      - label: Beauty
+        field: pillar
+        pattern: beauty
+      - label: Fitness
+        field: pillar
+        pattern: fitness
+      - label: Drafts
+        field: draft
+        pattern: true
+    fields:
+      - { label: "Title", name: "title", widget: "string" }
+      - { label: "Publish date", name: "date", widget: "datetime", format: "YYYY-MM-DD", date_format: "YYYY-MM-DD", time_format: false }
+      - label: "Section"
+        name: "pillar"
+        widget: "select"
+        options:
+          - { label: "Beauty", value: "beauty" }
+          - { label: "Fitness", value: "fitness" }
+      - label: "Category"
+        name: "category"
+        widget: "select"
+        hint: "Shown as the small tag on the card."
+        options: ["Skincare", "Hair", "Makeup", "Strength", "Mobility", "Cardio", "Nutrition", "Recovery", "Mindset"]
+      - { label: "Summary", name: "summary", widget: "text", hint: "One or two sentences shown on the card and at the top of the article." }
+      - { label: "Cover image", name: "cover", widget: "image", required: false, hint: "Optional. Landscape works best (about 1600×800)." }
+      - { label: "Cover image description", name: "coverAlt", widget: "string", required: false, hint: "Describe the image for screen readers." }
+      - { label: "Author", name: "author", widget: "string", default: "Beauty & Fitness", required: false }
+      - { label: "Draft", name: "draft", widget: "boolean", default: false, hint: "Drafts don't appear on the live site." }
+      - { label: "Article", name: "body", widget: "markdown" }
+
+  - name: "settings"
+    label: "Site settings"
+    files:
+      - name: "site"
+        label: "Site details"
+        file: "src/_data/site.json"
+        fields:
+          - { label: "Site name", name: "name", widget: "string" }
+          - { label: "Tagline", name: "tagline", widget: "string" }
+          - { label: "Description", name: "description", widget: "text" }
+          - { label: "Site URL", name: "url", widget: "string" }
+      - name: "about"
+        label: "About page"
+        file: "src/about.md"
+        fields:
+          - { label: "Layout", name: "layout", widget: "hidden", default: "base.njk" }
+          - { label: "Title", name: "title", widget: "string" }
+          - { label: "Permalink", name: "permalink", widget: "hidden", default: "/about/" }
+          - { label: "Content", name: "body", widget: "markdown" }
