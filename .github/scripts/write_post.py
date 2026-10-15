@@ -3,11 +3,18 @@
 
 Runs inside GitHub Actions. Needs ANTHROPIC_API_KEY in the environment.
 """
-import datetime, glob, json, os, random, re, sys, urllib.parse, urllib.request
+import datetime, glob, json, os, random, re, sys, time
+import urllib.error, urllib.parse, urllib.request
 
 POSTS = "src/posts"
 UPLOADS = "src/uploads"
-MODEL = "claude-sonnet-4-5-20250929"
+MODELS = [
+    "claude-sonnet-4-5",
+    "claude-sonnet-4-5-20250929",
+    "claude-sonnet-4-20250514",
+    "claude-3-7-sonnet-latest",
+    "claude-3-5-sonnet-latest",
+]
 
 CATEGORIES = {
     "beauty": ["Skincare", "Hair", "Makeup"],
@@ -110,21 +117,40 @@ coverAlt is a short plain description of that photograph for screen readers."""
 
 
 def call_claude(sys_prompt, user_prompt):
-    key = os.environ["ANTHROPIC_API_KEY"]
-    body = json.dumps({
-        "model": MODEL,
-        "max_tokens": 3000,
-        "temperature": 1.0,
-        "system": sys_prompt,
-        "messages": [{"role": "user", "content": user_prompt}],
-    }).encode()
-    req = urllib.request.Request("https://api.anthropic.com/v1/messages", data=body, method="POST")
-    req.add_header("x-api-key", key)
-    req.add_header("anthropic-version", "2023-06-01")
-    req.add_header("content-type", "application/json")
-    with urllib.request.urlopen(req, timeout=180) as r:
-        data = json.loads(r.read().decode())
-    return "".join(b.get("text", "") for b in data["content"])
+    key = os.environ.get("ANTHROPIC_API_KEY")
+    if not key:
+        sys.exit("ANTHROPIC_API_KEY is not set. Add it as a repository secret.")
+    last = ""
+    for model in MODELS:
+        body = json.dumps({
+            "model": model,
+            "max_tokens": 3000,
+            "temperature": 1.0,
+            "system": sys_prompt,
+            "messages": [{"role": "user", "content": user_prompt}],
+        }).encode()
+        req = urllib.request.Request(
+            "https://api.anthropic.com/v1/messages", data=body, method="POST")
+        req.add_header("x-api-key", key)
+        req.add_header("anthropic-version", "2023-06-01")
+        req.add_header("content-type", "application/json")
+        try:
+            with urllib.request.urlopen(req, timeout=180) as r:
+                data = json.loads(r.read().decode())
+            print("Wrote with model:", model)
+            return "".join(b.get("text", "") for b in data["content"])
+        except urllib.error.HTTPError as e:
+            last = e.read().decode()[:400]
+            print(f"model {model} -> HTTP {e.code}: {last}", file=sys.stderr)
+            if e.code in (401, 403):
+                sys.exit("API key rejected. Check the ANTHROPIC_API_KEY secret and that "
+                         "the account has credit.")
+            continue
+        except Exception as exc:  # noqa: BLE001
+            last = str(exc)
+            print(f"model {model} -> {exc}", file=sys.stderr)
+            continue
+    sys.exit("No usable model. Last error: " + last)
 
 
 def slugify(title):
