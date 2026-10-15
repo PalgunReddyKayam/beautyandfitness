@@ -109,10 +109,22 @@ imagePrompt: "..."
 coverAlt: "..."
 ---
 
-imagePrompt describes a photograph for the top of the article. It must read like a brief to \
-a photographer: candid documentary photography, natural light, real skin texture, ordinary \
-people, no text, no logos, shallow depth of field. No illustration, no 3D render, no stock-photo \
-smiling. Keep it one sentence.
+imagePrompt is a brief to a photographer for the image at the top of the article.
+
+RULES for imagePrompt — these matter more than the topic:
+- NO FACES. No portraits, no models, no one looking at the camera. Faces are what make a \
+generated image look fake. Photograph the detail, not the person.
+- Choose an object, a surface, a pair of hands mid-task, or a room: shampoo bottles on a wet \
+tiled shelf, a barbell loaded on a gym floor at dawn, chopped vegetables on a wooden board, \
+running shoes by a front door, a folded towel and a bar of soap, a hand holding a dropper \
+bottle. Concrete and ordinary.
+- Describe the light and the place: window light, overcast afternoon, a cluttered bathroom \
+shelf, a kitchen counter with crumbs on it. Imperfection reads as real.
+- End with: "candid documentary photograph, natural light, 35mm, shallow depth of field, \
+no text, no logos, no people's faces".
+- One sentence. Never glamorous, never a studio, never a smiling model, never an \
+illustration or 3D render.
+
 coverAlt is a short plain description of that photograph for screen readers."""
 
 
