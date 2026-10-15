@@ -116,12 +116,38 @@ smiling. Keep it one sentence.
 coverAlt is a short plain description of that photograph for screen readers."""
 
 
+def available_models(key):
+    """Ask the API which models this key can actually use."""
+    req = urllib.request.Request("https://api.anthropic.com/v1/models?limit=50")
+    req.add_header("x-api-key", key)
+    req.add_header("anthropic-version", "2023-06-01")
+    try:
+        with urllib.request.urlopen(req, timeout=60) as r:
+            data = json.loads(r.read().decode())
+    except urllib.error.HTTPError as e:
+        body = e.read().decode()[:300]
+        print(f"model list -> HTTP {e.code}: {body}", file=sys.stderr)
+        return []
+    except Exception as exc:  # noqa: BLE001
+        print(f"model list failed: {exc}", file=sys.stderr)
+        return []
+    ids = [m["id"] for m in data.get("data", [])]
+    print("Models available to this key:", ", ".join(ids) or "(none)")
+    sonnet = [i for i in ids if "sonnet" in i]
+    opus = [i for i in ids if "opus" in i]
+    haiku = [i for i in ids if "haiku" in i]
+    return sonnet + opus + haiku + ids
+
+
 def call_claude(sys_prompt, user_prompt):
     key = os.environ.get("ANTHROPIC_API_KEY")
     if not key:
         sys.exit("ANTHROPIC_API_KEY is not set. Add it as a repository secret.")
+    candidates = available_models(key)
+    seen = set()
+    ordered = [m for m in candidates + MODELS if not (m in seen or seen.add(m))]
     last = ""
-    for model in MODELS:
+    for model in ordered:
         body = json.dumps({
             "model": model,
             "max_tokens": 3000,
