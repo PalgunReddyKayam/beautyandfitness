@@ -109,21 +109,17 @@ imagePrompt: "..."
 coverAlt: "..."
 ---
 
-imagePrompt is a brief to a photographer for the image at the top of the article.
+imagePrompt is a brief for a photograph of an OBJECT or a PLACE. It must contain NO PEOPLE.
 
-RULES for imagePrompt — these matter more than the topic:
-- NO FACES. No portraits, no models, no one looking at the camera. Faces are what make a \
-generated image look fake. Photograph the detail, not the person.
-- Choose an object, a surface, a pair of hands mid-task, or a room: shampoo bottles on a wet \
-tiled shelf, a barbell loaded on a gym floor at dawn, chopped vegetables on a wooden board, \
-running shoes by a front door, a folded towel and a bar of soap, a hand holding a dropper \
-bottle. Concrete and ordinary.
-- Describe the light and the place: window light, overcast afternoon, a cluttered bathroom \
-shelf, a kitchen counter with crumbs on it. Imperfection reads as real.
-- End with: "candid documentary photograph, natural light, 35mm, shallow depth of field, \
-no text, no logos, no people's faces".
-- One sentence. Never glamorous, never a studio, never a smiling model, never an \
-illustration or 3D render.
+RULES for imagePrompt — these are absolute:
+- No people. No person, no model, no hands, no face, no body part of any kind. Not even \
+partly, not even out of focus, not even in the background. A brief that mentions a human \
+in any form is rejected and replaced automatically.
+- Photograph the thing, not the user of the thing: shampoo bottles on a wet tiled shelf, a \
+loaded barbell on a gym floor at dawn, chopped vegetables on a wooden board, running shoes \
+by a front door, a folded towel beside a bar of soap, an open jar on a cluttered shelf.
+- Describe the light and the place. Ordinary, slightly imperfect, lived-in.
+- One sentence. Never a studio, never glamorous, never an illustration or 3D render.
 
 coverAlt is a short plain description of that photograph for screen readers."""
 
@@ -162,7 +158,7 @@ def call_claude(sys_prompt, user_prompt):
     for model in ordered:
         body = json.dumps({
             "model": model,
-            "max_tokens": 3000,
+            "max_tokens": 4000,
             "temperature": 1.0,
             "system": sys_prompt,
             "messages": [{"role": "user", "content": user_prompt}],
@@ -175,8 +171,13 @@ def call_claude(sys_prompt, user_prompt):
         try:
             with urllib.request.urlopen(req, timeout=180) as r:
                 data = json.loads(r.read().decode())
+            text = "".join(b.get("text", "") for b in data["content"])
+            if data.get("stop_reason") == "max_tokens":
+                print(f"{model} ran out of room mid-article; discarding.", file=sys.stderr)
+                last = "response truncated (max_tokens)"
+                continue
             print("Wrote with model:", model)
-            return "".join(b.get("text", "") for b in data["content"])
+            return text
         except urllib.error.HTTPError as e:
             last = e.read().decode()[:400]
             print(f"model {model} -> HTTP {e.code}: {last}", file=sys.stderr)
@@ -198,14 +199,57 @@ def slugify(title):
     return s[:60].rstrip("-")
 
 
+BANNED = [
+    "woman", "women", "man", "men", "girl", "boy", "lady", "person", "people",
+    "model", "female", "male", "body", "torso", "chest", "breast", "shoulder",
+    "bare", "nude", "naked", "topless", "lingerie", "bikini", "underwear",
+    "swimsuit", "skin texture", "face", "portrait", "selfie", "her ", "his ",
+    "she ", "he ", "wearing", "dressed", "undressed", "shower", "bathing",
+    "bath ", "towel-wrapped", "sensual", "beautiful young", "attractive",
+    "hands", "hand ", "arm", "leg", "thigh", "hair of", "lips", "eyes",
+]
+
+SAFE_SUFFIX = (" — still life object photography, empty scene, absolutely no people, "
+               "no human figures, no body parts, no faces, natural light, 35mm, "
+               "shallow depth of field, no text, no logos")
+
+FALLBACK_PROMPTS = [
+    "a row of unlabelled skincare bottles on a wet bathroom shelf, morning light",
+    "a loaded barbell resting on a worn gym floor, early daylight through a high window",
+    "chopped vegetables and a knife on a scratched wooden board, kitchen counter",
+    "a pair of worn running shoes by a front door, hallway light",
+    "a folded towel and a plain bar of soap on a tiled ledge",
+    "a glass of water and a notebook on a windowsill, overcast afternoon",
+    "a kettlebell and a skipping rope on a concrete floor",
+    "an open jar of plain moisturiser on a cluttered shelf, side light",
+]
+
+
+def prompt_is_safe(text):
+    """True only if the brief describes no person and no body part."""
+    low = " " + text.lower() + " "
+    hits = [w for w in BANNED if w in low]
+    if hits:
+        print("Image brief rejected, mentions:", ", ".join(sorted(set(hits))), file=sys.stderr)
+        return False
+    return True
+
+
 def fetch_cover(image_prompt, slug):
     os.makedirs(UPLOADS, exist_ok=True)
-    enc = urllib.parse.quote(image_prompt[:900])
-    seed = random.randint(1, 10**8)
-    url = (f"https://image.pollinations.ai/prompt/{enc}"
-           f"?width=1600&height=900&model=flux&nologo=true&seed={seed}")
+
+    if not prompt_is_safe(image_prompt):
+        image_prompt = random.choice(FALLBACK_PROMPTS)
+        print("Using a safe fallback image brief instead.", file=sys.stderr)
+
+    full = image_prompt.strip().rstrip(".") + SAFE_SUFFIX
+    enc = urllib.parse.quote(full[:1200])
     dest = os.path.join(UPLOADS, slug + ".jpg")
-    for attempt in range(4):
+
+    for attempt in range(3):
+        seed = random.randint(1, 10**8)
+        url = (f"https://image.pollinations.ai/prompt/{enc}"
+               f"?width=1600&height=900&model=flux&nologo=true&safe=true&seed={seed}")
         try:
             req = urllib.request.Request(url, headers={"User-Agent": "beautyandfitness-bot"})
             with urllib.request.urlopen(req, timeout=180) as r:
@@ -214,11 +258,12 @@ def fetch_cover(image_prompt, slug):
                 with open(dest, "wb") as fh:
                     fh.write(data)
                 return "/uploads/" + slug + ".jpg"
-        except Exception as exc:          # noqa: BLE001
+            print("image came back too small, retrying", file=sys.stderr)
+        except Exception as exc:  # noqa: BLE001
             print(f"image attempt {attempt + 1} failed: {exc}", file=sys.stderr)
-        import time
-        time.sleep(20)
-    print("no cover image this time", file=sys.stderr)
+        time.sleep(15)
+
+    print("No cover image this time; publishing without one.", file=sys.stderr)
     return None
 
 
@@ -255,6 +300,19 @@ def main():
     name = f"{date}-{slug}"
     if any(s.endswith(slug) for s in slugs):
         sys.exit(f"Topic '{title}' already covered; skipping this run.")
+
+    body = md.split("---", 2)[-1]
+    problems = []
+    if "## What to do this week" not in md:
+        problems.append("missing the closing 'What to do this week' section")
+    if len(body.split()) < 450:
+        problems.append(f"too short ({len(body.split())} words)")
+    if body.rstrip()[-1:] not in ".!?:" and not body.rstrip().endswith("]"):
+        problems.append("ends mid-sentence")
+    if body.count("**") % 2 != 0:
+        problems.append("unclosed bold markup")
+    if problems:
+        sys.exit("Article rejected, publishing nothing. Problems: " + "; ".join(problems))
 
     ip = re.search(r'^imagePrompt:\s*"?(.+?)"?\s*$', md, re.M)
     cover = fetch_cover(ip.group(1), name) if ip else None
