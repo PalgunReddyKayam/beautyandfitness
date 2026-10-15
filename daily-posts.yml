@@ -1,0 +1,37 @@
+name: Publish article
+
+on:
+  schedule:
+    - cron: '7 3 * * *'
+    - cron: '7 9 * * *'
+    - cron: '7 16 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-article
+  cancel-in-progress: false
+
+jobs:
+  write:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Write the article
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python3 .github/scripts/write_post.py
+
+      - name: Commit and publish
+        run: |
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "Nothing new to publish."; exit 0
+          fi
+          git config user.name  "Beauty & Fitness"
+          git config user.email "actions@users.noreply.github.com"
+          git add src/posts src/uploads
+          git commit -m "Add article: $(git status --porcelain src/posts | head -1 | awk '{print $2}' | xargs -r basename)"
+          git push

@@ -1,0 +1,208 @@
+#!/usr/bin/env python3
+"""Write one new article for beautyandfitness.in and fetch a cover image.
+
+Runs inside GitHub Actions. Needs ANTHROPIC_API_KEY in the environment.
+"""
+import datetime, glob, json, os, random, re, sys, urllib.parse, urllib.request
+
+POSTS = "src/posts"
+UPLOADS = "src/uploads"
+MODEL = "claude-sonnet-4-5-20250929"
+
+CATEGORIES = {
+    "beauty": ["Skincare", "Hair", "Makeup"],
+    "fitness": ["Strength", "Mobility", "Cardio", "Nutrition", "Recovery", "Mindset"],
+}
+
+
+def existing():
+    titles, slugs = [], []
+    for path in sorted(glob.glob(os.path.join(POSTS, "*.md"))):
+        slugs.append(os.path.basename(path)[:-3])
+        with open(path, encoding="utf-8") as fh:
+            for line in fh:
+                if line.startswith("title:"):
+                    titles.append(line.split(":", 1)[1].strip().strip('"'))
+                    break
+    return titles, slugs
+
+
+def samples(n=2):
+    paths = sorted(glob.glob(os.path.join(POSTS, "*.md")))
+    random.shuffle(paths)
+    out = []
+    for p in paths[:n]:
+        with open(p, encoding="utf-8") as fh:
+            out.append(fh.read())
+    return "\n\n---8<---\n\n".join(out)
+
+
+SYSTEM = """You write for Beauty & Fitness, a plain-language beauty and fitness site. \
+You are a careful human writer, not a chatbot. Your writing is quiet, specific and \
+evidence-led. Readers trust the site because it never oversells.
+
+HARD RULES — breaking any of these ruins the piece:
+- British spelling (moisturise, colour, programme, fibre).
+- No AI throat-clearing. Never open with "In today's world", "Let's dive in", \
+"Whether you're a beginner or", "Imagine this", a rhetorical question, or a definition \
+of the topic. Open on a concrete observation, a common mistake, or a specific scene.
+- Never use: delve, elevate, unlock, game-changer, journey, holistic, embark, \
+testament, tapestry, "it's important to note", "when it comes to", "not only... but also", \
+"in conclusion", "the key takeaway". No sentence that begins with "Remember,".
+- No emoji. No bold scattered through paragraphs for emphasis — bold only to label a \
+list item or a short lead-in.
+- Vary sentence length. Short declarative sentences are good. Do not write three \
+consecutive sentences of the same shape.
+- Be specific: real numbers, real timeframes, real ingredient names, real exercise names. \
+Vague advice is the failure mode.
+- Say when evidence is weak or when something does not matter. Contradict popular advice \
+where the evidence supports it.
+- No medical claims about treating disease. No promises of specific results.
+- 700-950 words.
+
+STRUCTURE (match the examples exactly):
+- YAML front matter, then the body.
+- Body opens with 2-3 short paragraphs of plain prose, no heading.
+- Then 3-5 "## " sections with concrete, useful content.
+- Ends with a "## What to do this week" section of 3-5 bullet actions.
+- Markdown only: ##, **bold**, - bullets. No H1, no tables, no images in the body.
+"""
+
+
+def prompt(titles, pillar, category, date, examples):
+    return f"""Here are two existing articles from the site, so you can match the voice exactly:
+
+{examples}
+
+---8<---
+
+Articles already on the site (do not repeat these topics):
+{chr(10).join('- ' + t for t in titles)}
+
+Write ONE new article.
+- Section (pillar): {pillar}
+- Category: {category}
+- Publish date: {date}
+
+Pick a topic in that category that is genuinely useful, is not in the list above, and \
+that a real reader would search for. Prefer a specific question over a broad survey.
+
+Return ONLY the finished Markdown file, starting with --- and nothing before it. The front \
+matter must be exactly these keys in this order:
+
+---
+title: "..."
+date: {date}
+pillar: {pillar}
+category: {category}
+summary: One or two sentences, plain, no hype.
+author: Beauty & Fitness
+draft: false
+imagePrompt: "..."
+coverAlt: "..."
+---
+
+imagePrompt describes a photograph for the top of the article. It must read like a brief to \
+a photographer: candid documentary photography, natural light, real skin texture, ordinary \
+people, no text, no logos, shallow depth of field. No illustration, no 3D render, no stock-photo \
+smiling. Keep it one sentence.
+coverAlt is a short plain description of that photograph for screen readers."""
+
+
+def call_claude(sys_prompt, user_prompt):
+    key = os.environ["ANTHROPIC_API_KEY"]
+    body = json.dumps({
+        "model": MODEL,
+        "max_tokens": 3000,
+        "temperature": 1.0,
+        "system": sys_prompt,
+        "messages": [{"role": "user", "content": user_prompt}],
+    }).encode()
+    req = urllib.request.Request("https://api.anthropic.com/v1/messages", data=body, method="POST")
+    req.add_header("x-api-key", key)
+    req.add_header("anthropic-version", "2023-06-01")
+    req.add_header("content-type", "application/json")
+    with urllib.request.urlopen(req, timeout=180) as r:
+        data = json.loads(r.read().decode())
+    return "".join(b.get("text", "") for b in data["content"])
+
+
+def slugify(title):
+    s = title.lower()
+    s = re.sub(r"[^a-z0-9\s-]", "", s)
+    s = re.sub(r"\s+", "-", s).strip("-")
+    return s[:60].rstrip("-")
+
+
+def fetch_cover(image_prompt, slug):
+    os.makedirs(UPLOADS, exist_ok=True)
+    enc = urllib.parse.quote(image_prompt[:900])
+    seed = random.randint(1, 10**8)
+    url = (f"https://image.pollinations.ai/prompt/{enc}"
+           f"?width=1600&height=900&model=flux&nologo=true&seed={seed}")
+    dest = os.path.join(UPLOADS, slug + ".jpg")
+    for attempt in range(4):
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": "beautyandfitness-bot"})
+            with urllib.request.urlopen(req, timeout=180) as r:
+                data = r.read()
+            if len(data) > 20000:
+                with open(dest, "wb") as fh:
+                    fh.write(data)
+                return "/uploads/" + slug + ".jpg"
+        except Exception as exc:          # noqa: BLE001
+            print(f"image attempt {attempt + 1} failed: {exc}", file=sys.stderr)
+        import time
+        time.sleep(20)
+    print("no cover image this time", file=sys.stderr)
+    return None
+
+
+def main():
+    titles, slugs = existing()
+    if not titles:
+        sys.exit("No existing posts to learn the voice from.")
+
+    # alternate between beauty and fitness based on what is thinner
+    counts = {"beauty": 0, "fitness": 0}
+    for path in glob.glob(os.path.join(POSTS, "*.md")):
+        with open(path, encoding="utf-8") as fh:
+            txt = fh.read()
+        for p in counts:
+            if f"pillar: {p}" in txt:
+                counts[p] += 1
+    pillar = min(counts, key=counts.get)
+    category = random.choice(CATEGORIES[pillar])
+    date = datetime.date.today().isoformat()
+
+    md = call_claude(SYSTEM, prompt(titles, pillar, category, date, samples()))
+    md = md.strip()
+    if md.startswith("```"):
+        md = re.sub(r"^```[a-z]*\n", "", md)
+        md = re.sub(r"\n```$", "", md)
+    if not md.startswith("---"):
+        sys.exit("Model did not return a Markdown file with front matter.")
+
+    m = re.search(r'^title:\s*"?(.+?)"?\s*$', md, re.M)
+    if not m:
+        sys.exit("No title in the generated front matter.")
+    title = m.group(1)
+    slug = slugify(title)
+    name = f"{date}-{slug}"
+    if any(s.endswith(slug) for s in slugs):
+        sys.exit(f"Topic '{title}' already covered; skipping this run.")
+
+    ip = re.search(r'^imagePrompt:\s*"?(.+?)"?\s*$', md, re.M)
+    cover = fetch_cover(ip.group(1), name) if ip else None
+    if cover:
+        md = re.sub(r"^(summary:.*)$", r"\1\ncover: " + cover, md, count=1, flags=re.M)
+
+    os.makedirs(POSTS, exist_ok=True)
+    path = os.path.join(POSTS, name + ".md")
+    with open(path, "w", encoding="utf-8") as fh:
+        fh.write(md.rstrip() + "\n")
+    print("Wrote", path)
+
+
+if __name__ == "__main__":
+    main()
